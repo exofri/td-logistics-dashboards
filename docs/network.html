@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>Network dashboard — Strategy</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="js/france-map-background.js"></script>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
   nav a { margin-right: 1rem; }
@@ -29,7 +30,7 @@
   <canvas id="scenarioChart" height="260"></canvas>
 
   <h2>Why: baseline vs. the best alternative (side-by-side maps)</h2>
-  <p>This decision is fundamentally about geographic coverage, more than either of the other two dashboards — so unlike the cost dashboard, a spatial view isn't optional here, it's the main evidence. Each city is colored by which warehouse it's assigned to.</p>
+  <p>This decision is fundamentally about geographic coverage, more than either of the other two dashboards — so unlike the cost dashboard, a spatial view isn't optional here, it's the main evidence. Each city is plotted over a real France outline and colored by which warehouse it's assigned to, so the coverage shift is visible at a glance instead of requiring you to read coordinates.</p>
   <div class="maps">
     <div><h3 id="baselineTitle">Baseline</h3><canvas id="baselineMap" height="300"></canvas></div>
     <div><h3 id="altTitle">Best alternative</h3><canvas id="altMap" height="300"></canvas></div>
@@ -50,9 +51,16 @@ function drawMap(canvasId, cities, title) {
   new Chart(document.getElementById(canvasId), {
     type: 'scatter',
     data: { datasets },
+    // Same franceBackgroundPlugin as the CO2 dashboard (Step 7/8) -- it
+    // matters even more here: this decision IS about geography, so the real
+    // outline is the main evidence, not decoration.
+    plugins: [franceBackgroundPlugin],
     options: {
       plugins: { title: { display: true, text: title }, legend: { position: 'bottom' } },
-      scales: { x: { title: { display: true, text: 'Longitude' } }, y: { title: { display: true, text: 'Latitude' } } },
+      scales: {
+        x: { title: { display: true, text: 'Longitude' }, min: FRANCE_BBOX.minLon, max: FRANCE_BBOX.maxLon },
+        y: { title: { display: true, text: 'Latitude' }, min: FRANCE_BBOX.minLat, max: FRANCE_BBOX.maxLat },
+      },
     },
   });
 }
