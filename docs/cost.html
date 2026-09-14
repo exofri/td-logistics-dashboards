@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cost dashboard — Operations</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  nav a { margin-right: 1rem; }
+  .kpis { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+  .kpi { flex: 1; min-width: 160px; padding: 0.8rem 1rem; border: 1px solid #ccc; border-radius: 8px; }
+  .kpi .value { font-size: 1.5rem; font-weight: bold; color: #c46e0a; }
+  .kpi .label { font-size: 0.8rem; color: #666; }
+  #assumptions { font-size: 0.8rem; color: #666; padding: 0.6rem 0.9rem; border-left: 3px solid #c46e0a; margin: 1rem 0; }
+  canvas { margin-top: 1.5rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #ddd; }
+</style>
+</head>
+<body>
+  <nav><a href="index.html">Overview</a> | <a href="co2.html">CO2 (sustainability)</a> | <strong>Cost (operations)</strong> | <a href="network.html">Network (strategy)</a></nav>
+  <h1>Where does logistics cost concentrate, and which lever matters?</h1>
+  <p>For: logistics/operations cost manager. Decision this supports: for each warehouse, is its cost problem mainly transport (routes too long/frequent) or storage (holding too much stock) — because the fix is different for each.</p>
+  <div class="kpis" id="kpis">Loading...</div>
+  <div id="assumptions"></div>
+
+  <h2>Cost composition per warehouse (stacked bar, not a bar or a pie)</h2>
+  <p>A plain bar would show total cost but hide the transport/storage split; a pie per warehouse would show the split but make comparing warehouses to each other hard (comparing angles across three separate pies is a known weak reading task). A <strong>stacked bar</strong> shows both at once: bar height = total cost, segment size = which lever to pull.</p>
+  <canvas id="stackedChart" height="280"></canvas>
+
+  <h2>Highest-cost individual routes (table, not a chart)</h2>
+  <p>A manager negotiating a specific route needs the exact number, not a visual estimate — same reasoning this course used for every other "exact figures a person will act on" table (e.g. the offer table in Smart Internship Match).</p>
+  <table id="topLinksTable"><thead><tr><th>City</th><th>Warehouse</th><th>Distance (km)</th><th>Transport cost (EUR/year)</th></tr></thead><tbody></tbody></table>
+
+<script>
+fetch('data/cost.json')
+  .then(r => r.json())
+  .then(data => {
+    const byWh = data.by_warehouse || [];
+    const totalCost = byWh.reduce((s, w) => s + w.total_cost_eur, 0);
+    const avgCostPerTonne = byWh.length ? (byWh.reduce((s, w) => s + w.cost_eur_per_tonne, 0) / byWh.length) : 0;
+
+    document.getElementById('kpis').innerHTML = `
+      <div class="kpi"><div class="value">${(totalCost / 1000).toFixed(0)}k EUR</div><div class="label">Total network cost / year</div></div>
+      <div class="kpi"><div class="value">${avgCostPerTonne.toFixed(0)} EUR</div><div class="label">Avg cost per tonne (mean across warehouses)</div></div>
+    `;
+    document.getElementById('assumptions').innerHTML =
+      `Assumptions (illustrative, not researched market rates): ${data.assumptions.cost_eur_per_tonne_km} EUR/tonne-km transport, ` +
+      `${data.assumptions.storage_cost_eur_per_tonne_year} EUR/tonne/year storage.`;
+
+    new Chart(document.getElementById('stackedChart'), {
+      type: 'bar',
+      data: {
+        labels: byWh.map(w => w.warehouse),
+        datasets: [
+          { label: 'Transport cost', data: byWh.map(w => w.transport_cost_eur), backgroundColor: '#0d7c9e' },
+          { label: 'Storage cost', data: byWh.map(w => w.storage_cost_eur), backgroundColor: '#c46e0a' },
+        ],
+      },
+      options: {
+        plugins: { title: { display: true, text: 'Total cost per warehouse, split by lever' } },
+        scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'EUR / year' } } },
+      },
+    });
+
+    const tbody = document.querySelector('#topLinksTable tbody');
+    tbody.innerHTML = (data.top_links || []).map(l => `
+      <tr><td>${l.city}</td><td>${l.warehouse}</td><td>${l.distance_km}</td><td>${l.transport_cost_eur.toFixed(0)}</td></tr>
+    `).join('');
+  })
+  .catch(err => { document.getElementById('kpis').innerHTML = '<p>Could not load data (' + err + ').</p>'; });
+</script>
+</body>
+</html>
