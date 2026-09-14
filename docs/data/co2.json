@@ -1,1 +1,230 @@
-{}
+{
+  "generated_at": "2026-09-14T14:55:01Z",
+  "assumptions": {
+    "co2_factor_kg_per_tonne_km": 0.1,
+    "tonnes_per_1000_residents_per_year": 50
+  },
+  "total_co2_kg": 6236312.0,
+  "co2_kg_per_tonne_network_avg": 16.8,
+  "by_warehouse": [
+    {
+      "warehouse": "Paris",
+      "total_co2_kg": 1497094.0,
+      "co2_kg_per_tonne": 9.09
+    },
+    {
+      "warehouse": "Lyon",
+      "total_co2_kg": 4739218.0,
+      "co2_kg_per_tonne": 24.34
+    },
+    {
+      "warehouse": "Lille",
+      "total_co2_kg": 0.0,
+      "co2_kg_per_tonne": 0.0
+    }
+  ],
+  "top_links": [
+    {
+      "city": "Marseille",
+      "warehouse": "Lyon",
+      "distance_km": 277.6,
+      "co2_kg": 1211829.5
+    },
+    {
+      "city": "Toulouse",
+      "warehouse": "Lyon",
+      "distance_km": 359.9,
+      "co2_kg": 887988.5
+    },
+    {
+      "city": "Bordeaux",
+      "warehouse": "Lyon",
+      "distance_km": 435.8,
+      "co2_kg": 570470.9
+    },
+    {
+      "city": "Strasbourg",
+      "warehouse": "Lyon",
+      "distance_km": 382.3,
+      "co2_kg": 556842.9
+    },
+    {
+      "city": "Nantes",
+      "warehouse": "Paris",
+      "distance_km": 342.7,
+      "co2_kg": 549574.3
+    },
+    {
+      "city": "Nice",
+      "warehouse": "Lyon",
+      "distance_km": 298.1,
+      "co2_kg": 510699.0
+    },
+    {
+      "city": "Montpellier",
+      "warehouse": "Lyon",
+      "distance_km": 251.1,
+      "co2_kg": 379731.0
+    },
+    {
+      "city": "Rennes",
+      "warehouse": "Paris",
+      "distance_km": 308.1,
+      "co2_kg": 339661.8
+    },
+    {
+      "city": "Toulon",
+      "warehouse": "Lyon",
+      "distance_km": 306.1,
+      "co2_kg": 269671.0
+    },
+    {
+      "city": "Angers",
+      "warehouse": "Paris",
+      "distance_km": 265.0,
+      "co2_kg": 204723.1
+    }
+  ],
+  "all_cities": [
+    {
+      "city": "Paris",
+      "lat": 48.8566,
+      "lon": 2.3522,
+      "warehouse": "Paris",
+      "co2_kg": 0.0
+    },
+    {
+      "city": "Marseille",
+      "lat": 43.2965,
+      "lon": 5.3698,
+      "warehouse": "Lyon",
+      "co2_kg": 1211829.5
+    },
+    {
+      "city": "Lyon",
+      "lat": 45.764,
+      "lon": 4.8357,
+      "warehouse": "Lyon",
+      "co2_kg": 0.0
+    },
+    {
+      "city": "Toulouse",
+      "lat": 43.6047,
+      "lon": 1.4442,
+      "warehouse": "Lyon",
+      "co2_kg": 887988.5
+    },
+    {
+      "city": "Nice",
+      "lat": 43.7102,
+      "lon": 7.262,
+      "warehouse": "Lyon",
+      "co2_kg": 510699.0
+    },
+    {
+      "city": "Nantes",
+      "lat": 47.2184,
+      "lon": -1.5536,
+      "warehouse": "Paris",
+      "co2_kg": 549574.3
+    },
+    {
+      "city": "Montpellier",
+      "lat": 43.6108,
+      "lon": 3.8767,
+      "warehouse": "Lyon",
+      "co2_kg": 379731.0
+    },
+    {
+      "city": "Strasbourg",
+      "lat": 48.5734,
+      "lon": 7.7521,
+      "warehouse": "Lyon",
+      "co2_kg": 556842.9
+    },
+    {
+      "city": "Bordeaux",
+      "lat": 44.8378,
+      "lon": -0.5792,
+      "warehouse": "Lyon",
+      "co2_kg": 570470.9
+    },
+    {
+      "city": "Lille",
+      "lat": 50.6292,
+      "lon": 3.0573,
+      "warehouse": "Lille",
+      "co2_kg": 0.0
+    },
+    {
+      "city": "Rennes",
+      "lat": 48.1173,
+      "lon": -1.6778,
+      "warehouse": "Paris",
+      "co2_kg": 339661.8
+    },
+    {
+      "city": "Reims",
+      "lat": 49.2583,
+      "lon": 4.0317,
+      "warehouse": "Paris",
+      "co2_kg": 118872.7
+    },
+    {
+      "city": "Le Havre",
+      "lat": 49.4944,
+      "lon": 0.1079,
+      "warehouse": "Paris",
+      "co2_kg": 151346.6
+    },
+    {
+      "city": "Saint-Etienne",
+      "lat": 45.4397,
+      "lon": 4.3872,
+      "warehouse": "Lyon",
+      "co2_kg": 43152.9
+    },
+    {
+      "city": "Toulon",
+      "lat": 43.1242,
+      "lon": 5.928,
+      "warehouse": "Lyon",
+      "co2_kg": 269671.0
+    },
+    {
+      "city": "Grenoble",
+      "lat": 45.1885,
+      "lon": 5.7245,
+      "warehouse": "Lyon",
+      "co2_kg": 74757.3
+    },
+    {
+      "city": "Dijon",
+      "lat": 47.322,
+      "lon": 5.0415,
+      "warehouse": "Lyon",
+      "co2_kg": 136520.4
+    },
+    {
+      "city": "Angers",
+      "lat": 47.4784,
+      "lon": -0.5632,
+      "warehouse": "Paris",
+      "co2_kg": 204723.1
+    },
+    {
+      "city": "Le Mans",
+      "lat": 48.0061,
+      "lon": 0.1996,
+      "warehouse": "Paris",
+      "co2_kg": 132915.6
+    },
+    {
+      "city": "Clermont-Ferrand",
+      "lat": 45.7772,
+      "lon": 3.087,
+      "warehouse": "Lyon",
+      "co2_kg": 97554.7
+    }
+  ]
+}
