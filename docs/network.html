@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Network dashboard — Strategy</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  nav a { margin-right: 1rem; }
+  .kpis { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+  .kpi { flex: 1; min-width: 160px; padding: 0.8rem 1rem; border: 1px solid #ccc; border-radius: 8px; }
+  .kpi .value { font-size: 1.5rem; font-weight: bold; color: #8b2ea0; }
+  .kpi .label { font-size: 0.8rem; color: #666; }
+  #caveat { padding: 0.8rem 1rem; border: 2px solid #c46e0a; border-radius: 8px; background: #faf3e8; margin: 1rem 0; }
+  .maps { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .maps > div { flex: 1; min-width: 320px; }
+  canvas { margin-top: 1.5rem; }
+</style>
+</head>
+<body>
+  <nav><a href="index.html">Overview</a> | <a href="co2.html">CO2 (sustainability)</a> | <a href="cost.html">Cost (operations)</a> | <strong>Network (strategy)</strong></nav>
+  <h1>Should we open a warehouse in Bordeaux or Marseille, or close Lille?</h1>
+  <p>For: network/strategic planning manager. Decision this supports: which of a small number of discrete network configurations serves the whole customer base with the least total distance — a first, distance-only pass before a full capex study.</p>
+  <div class="kpis" id="kpis">Loading...</div>
+  <div id="caveat"></div>
+
+  <h2>Comparing scenarios (bar chart of discrete options, not a line)</h2>
+  <p>These four configurations are discrete, mutually exclusive choices, not points on a continuum — a line chart would wrongly suggest you can interpolate between them. One bar per scenario, sorted best-to-worst, answers the actual question directly.</p>
+  <canvas id="scenarioChart" height="260"></canvas>
+
+  <h2>Why: baseline vs. the best alternative (side-by-side maps)</h2>
+  <p>This decision is fundamentally about geographic coverage, more than either of the other two dashboards — so unlike the cost dashboard, a spatial view isn't optional here, it's the main evidence. Each city is colored by which warehouse it's assigned to.</p>
+  <div class="maps">
+    <div><h3 id="baselineTitle">Baseline</h3><canvas id="baselineMap" height="300"></canvas></div>
+    <div><h3 id="altTitle">Best alternative</h3><canvas id="altMap" height="300"></canvas></div>
+  </div>
+
+<script>
+const WAREHOUSE_COLORS = { 'Paris': '#0d7c9e', 'Lyon': '#2e8b46', 'Lille': '#c46e0a', 'Bordeaux': '#8b2ea0', 'Marseille': '#d1345b' };
+
+function drawMap(canvasId, cities, title) {
+  const groups = {};
+  cities.forEach(c => { (groups[c.warehouse] = groups[c.warehouse] || []).push(c); });
+  const datasets = Object.entries(groups).map(([wh, pts]) => ({
+    label: wh,
+    data: pts.map(p => ({ x: p.lon, y: p.lat })),
+    backgroundColor: WAREHOUSE_COLORS[wh] || '#888',
+    pointRadius: 6,
+  }));
+  new Chart(document.getElementById(canvasId), {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      plugins: { title: { display: true, text: title }, legend: { position: 'bottom' } },
+      scales: { x: { title: { display: true, text: 'Longitude' } }, y: { title: { display: true, text: 'Latitude' } } },
+    },
+  });
+}
+
+fetch('data/network.json')
+  .then(r => r.json())
+  .then(data => {
+    const scenarios = data.scenarios || [];
+    const baseline = scenarios.find(s => s.scenario.startsWith('baseline'));
+    const best = scenarios[0];
+
+    document.getElementById('kpis').innerHTML = `
+      <div class="kpi"><div class="value">${baseline.avg_distance_km_population_weighted} km</div><div class="label">Current avg distance (population-weighted)</div></div>
+      <div class="kpi"><div class="value">${best.avg_distance_km_population_weighted} km</div><div class="label">Best alternative: ${best.scenario}</div></div>
+    `;
+    document.getElementById('caveat').innerHTML =
+      '<strong>What this does NOT capture:</strong> the capital cost of opening a warehouse, the lease-exit cost of closing one, ' +
+      'or non-distance factors like Lille\'s cross-border access to Belgium/UK. This is one input (service-level distance), not the whole decision -- ' +
+      'per this course\'s standing multi-objective principle.';
+
+    new Chart(document.getElementById('scenarioChart'), {
+      type: 'bar',
+      data: {
+        labels: scenarios.map(s => s.scenario),
+        datasets: [{ label: 'Avg distance, population-weighted (km)', data: scenarios.map(s => s.avg_distance_km_population_weighted),
+          backgroundColor: scenarios.map(s => s.scenario === best.scenario ? '#2e8b46' : '#0d7c9e') }],
+      },
+      options: { plugins: { legend: { display: false }, title: { display: true, text: 'Lower is better — green = best option found' } } },
+    });
+
+    document.getElementById('baselineTitle').textContent = `Baseline: ${baseline.warehouses.join(', ')}`;
+    document.getElementById('altTitle').textContent = `${data.best_alternative_name}: ${best.warehouses.join(', ')}`;
+    drawMap('baselineMap', data.baseline_map, 'Current assignment');
+    drawMap('altMap', data.best_alternative_map, 'Best alternative assignment');
+  })
+  .catch(err => { document.getElementById('kpis').innerHTML = '<p>Could not load data (' + err + ').</p>'; });
+</script>
+</body>
+</html>
