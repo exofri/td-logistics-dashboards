@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>CO2 dashboard — Sustainability</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="js/france-map-background.js"></script>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
   nav a { margin-right: 1rem; }
@@ -26,8 +27,8 @@
   <p>A ranked list of specific, actionable routes is exactly what a bar chart is for — each bar is one route someone could actually change.</p>
   <canvas id="topLinksChart" height="280"></canvas>
 
-  <h2>Where emissions concentrate (spatial → map-like scatter)</h2>
-  <p>This decision is inherently about geography — which <em>region</em> to target for consolidation — so a plain ranking isn't enough; we plot each city at its real coordinates, colored by its CO2 contribution.</p>
+  <h2>Where emissions concentrate (spatial → scatter over a real France outline)</h2>
+  <p>This decision is inherently about geography — which <em>region</em> to target for consolidation — so a plain ranking isn't enough; we plot each city at its real coordinates, colored by its CO2 contribution, over a real (simplified) outline of France so "where" reads at a glance instead of requiring you to mentally place bare longitude/latitude numbers.</p>
   <canvas id="mapChart" height="360"></canvas>
 
 <script>
@@ -61,16 +62,24 @@ fetch('data/co2.json')
           pointRadius: cities.map(c => 4 + 12 * Math.sqrt(c.co2_kg / maxCo2)),
         }],
       },
+      // franceBackgroundPlugin (js/france-map-background.js, Step 7) draws a
+      // real, simplified France outline behind the points, using the chart's
+      // own scale conversion -- see Step 7 for why this stays aligned at any
+      // canvas size, unlike a separately-positioned background image.
+      plugins: [franceBackgroundPlugin],
       options: {
         plugins: {
           legend: { display: false },
-          title: { display: true, text: 'Real coordinates (crude map substitute) — bigger/redder = more CO2' },
+          title: { display: true, text: 'Real coordinates over a real France outline — bigger/redder = more CO2' },
           tooltip: { callbacks: { label: (item) => {
             const c = item.raw;
             return [`${c.city} -> ${c.warehouse}`, `${c.co2.toFixed(0)} kg CO2/year`];
           } } },
         },
-        scales: { x: { title: { display: true, text: 'Longitude' } }, y: { title: { display: true, text: 'Latitude' } } },
+        scales: {
+          x: { title: { display: true, text: 'Longitude' }, min: FRANCE_BBOX.minLon, max: FRANCE_BBOX.maxLon },
+          y: { title: { display: true, text: 'Latitude' }, min: FRANCE_BBOX.minLat, max: FRANCE_BBOX.maxLat },
+        },
       },
     });
   })
