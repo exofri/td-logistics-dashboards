@@ -30,7 +30,7 @@
   <canvas id="scenarioChart" height="260"></canvas>
 
   <h2>Why: baseline vs. the best alternative (side-by-side maps)</h2>
-  <p>This decision is fundamentally about geographic coverage, more than either of the other two dashboards — so unlike the cost dashboard, a spatial view isn't optional here, it's the main evidence. Each city is plotted over a real France outline and colored by which warehouse it's assigned to, so the coverage shift is visible at a glance instead of requiring you to read coordinates.</p>
+  <p>This decision is fundamentally about geographic coverage, more than either of the other two dashboards — so unlike the cost dashboard, a spatial view isn't optional here, it's the main evidence. Each city is plotted over a real France outline and colored by which warehouse it's assigned to, so the coverage shift is visible at a glance instead of requiring you to read coordinates. The warehouse city itself is drawn as a bigger, black-outlined triangle inside its own color group — so you can see both "which warehouse serves this city" (color) and "which point is the actual warehouse" (shape) in the same view.</p>
   <div class="maps">
     <div><h3 id="baselineTitle">Baseline</h3><canvas id="baselineMap" height="300"></canvas></div>
     <div><h3 id="altTitle">Best alternative</h3><canvas id="altMap" height="300"></canvas></div>
@@ -42,11 +42,18 @@ const WAREHOUSE_COLORS = { 'Paris': '#0d7c9e', 'Lyon': '#2e8b46', 'Lille': '#c46
 function drawMap(canvasId, cities, title) {
   const groups = {};
   cities.forEach(c => { (groups[c.warehouse] = groups[c.warehouse] || []).push(c); });
+  // Per-point (not per-dataset) style arrays: the warehouse hub itself gets a
+  // bigger triangle with a black outline, every city it serves stays a plain
+  // circle -- all still under ONE legend entry per warehouse (its color), so
+  // marking the hub doesn't double the legend the way a second dataset would.
   const datasets = Object.entries(groups).map(([wh, pts]) => ({
     label: wh,
-    data: pts.map(p => ({ x: p.lon, y: p.lat })),
+    data: pts.map(p => ({ x: p.lon, y: p.lat, city: p.city })),
     backgroundColor: WAREHOUSE_COLORS[wh] || '#888',
-    pointRadius: 6,
+    pointStyle: pts.map(p => (p.city === wh ? 'triangle' : 'circle')),
+    pointRadius: pts.map(p => (p.city === wh ? 11 : 6)),
+    pointBorderColor: pts.map(p => (p.city === wh ? '#000' : 'transparent')),
+    pointBorderWidth: pts.map(p => (p.city === wh ? 2 : 0)),
   }));
   new Chart(document.getElementById(canvasId), {
     type: 'scatter',
@@ -56,7 +63,14 @@ function drawMap(canvasId, cities, title) {
     // outline is the main evidence, not decoration.
     plugins: [franceBackgroundPlugin],
     options: {
-      plugins: { title: { display: true, text: title }, legend: { position: 'bottom' } },
+      plugins: {
+        title: { display: true, text: title },
+        legend: { position: 'bottom' },
+        tooltip: { callbacks: { label: (item) => {
+          const p = item.raw;
+          return p.city === item.dataset.label ? `${p.city} (warehouse)` : `${p.city} -> ${item.dataset.label}`;
+        } } },
+      },
       scales: {
         x: { title: { display: true, text: 'Longitude' }, min: FRANCE_BBOX.minLon, max: FRANCE_BBOX.maxLon },
         y: { title: { display: true, text: 'Latitude' }, min: FRANCE_BBOX.minLat, max: FRANCE_BBOX.maxLat },
