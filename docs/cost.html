@@ -2,107 +2,71 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>CO2 dashboard — Sustainability</title>
+<title>Cost dashboard — Operations</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<script src="js/france-map-background.js"></script>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
   nav a { margin-right: 1rem; }
   .kpis { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
   .kpi { flex: 1; min-width: 160px; padding: 0.8rem 1rem; border: 1px solid #ccc; border-radius: 8px; }
-  .kpi .value { font-size: 1.5rem; font-weight: bold; color: #2e8b46; }
+  .kpi .value { font-size: 1.5rem; font-weight: bold; color: #c46e0a; }
   .kpi .label { font-size: 0.8rem; color: #666; }
-  #assumptions { font-size: 0.8rem; color: #666; padding: 0.6rem 0.9rem; border-left: 3px solid #2e8b46; margin: 1rem 0; }
+  #assumptions { font-size: 0.8rem; color: #666; padding: 0.6rem 0.9rem; border-left: 3px solid #c46e0a; margin: 1rem 0; }
   canvas { margin-top: 1.5rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #ddd; }
 </style>
 </head>
 <body>
-  <nav><a href="index.html">Overview</a> | <strong>CO2 (sustainability)</strong> | <a href="cost.html">Cost (operations)</a> | <a href="network.html">Network (strategy)</a></nav>
-  <h1>Which routes should we prioritize to cut network CO2?</h1>
-  <p>For: sustainability/CSR manager. Decision this supports: which specific delivery routes are the best candidates for consolidation or a shift to rail, and which warehouse is the least CO2-efficient per tonne delivered.</p>
+  <nav><a href="index.html">Overview</a> | <a href="co2.html">CO2 (sustainability)</a> | <strong>Cost (operations)</strong> | <a href="network.html">Network (strategy)</a></nav>
+  <h1>Where does logistics cost concentrate, and which lever matters?</h1>
+  <p>For: logistics/operations cost manager. Decision this supports: for each warehouse, is its cost problem mainly transport (routes too long/frequent) or storage (holding too much stock) — because the fix is different for each.</p>
   <div class="kpis" id="kpis">Loading...</div>
   <div id="assumptions"></div>
 
-  <h2>Highest-CO2 routes (ranking → bar chart)</h2>
-  <p>A ranked list of specific, actionable routes is exactly what a bar chart is for — each bar is one route someone could actually change.</p>
-  <canvas id="topLinksChart" height="280"></canvas>
+  <h2>Cost composition per warehouse (stacked bar, not a bar or a pie)</h2>
+  <p>A plain bar would show total cost but hide the transport/storage split; a pie per warehouse would show the split but make comparing warehouses to each other hard (comparing angles across three separate pies is a known weak reading task). A <strong>stacked bar</strong> shows both at once: bar height = total cost, segment size = which lever to pull.</p>
+  <canvas id="stackedChart" height="280"></canvas>
 
-  <h2>Where emissions concentrate (spatial → scatter over a real France outline)</h2>
-  <p>This decision is inherently about geography — which <em>region</em> to target for consolidation — so a plain ranking isn't enough; we plot each city at its real coordinates, colored by its CO2 contribution, over a real (simplified) outline of France so "where" reads at a glance instead of requiring you to mentally place bare longitude/latitude numbers. Existing warehouses get their own marker <em>shape</em> (a triangle), not just a color — a shape difference survives grayscale printing and color-blindness in a way color alone doesn't, and it answers a second real question at a glance: is CO2 concentrating near a warehouse (fixable by re-routing) or far from every warehouse (fixable only by opening a new one)?</p>
-  <canvas id="mapChart" height="360"></canvas>
+  <h2>Highest-cost individual routes (table, not a chart)</h2>
+  <p>A manager negotiating a specific route needs the exact number, not a visual estimate — same reasoning this course used for every other "exact figures a person will act on" table (e.g. the offer table in Smart Internship Match).</p>
+  <table id="topLinksTable"><thead><tr><th>City</th><th>Warehouse</th><th>Distance (km)</th><th>Transport cost (EUR/year)</th></tr></thead><tbody></tbody></table>
 
 <script>
-fetch('data/co2.json')
+fetch('data/cost.json')
   .then(r => r.json())
   .then(data => {
+    const byWh = data.by_warehouse || [];
+    const totalCost = byWh.reduce((s, w) => s + w.total_cost_eur, 0);
+    const avgCostPerTonne = byWh.length ? (byWh.reduce((s, w) => s + w.cost_eur_per_tonne, 0) / byWh.length) : 0;
+
     document.getElementById('kpis').innerHTML = `
-      <div class="kpi"><div class="value">${(data.total_co2_kg / 1000).toFixed(0)} t</div><div class="label">Total network CO2 / year</div></div>
-      <div class="kpi"><div class="value">${data.co2_kg_per_tonne_network_avg}</div><div class="label">kg CO2 per tonne delivered (network avg)</div></div>
+      <div class="kpi"><div class="value">${(totalCost / 1000).toFixed(0)}k EUR</div><div class="label">Total network cost / year</div></div>
+      <div class="kpi"><div class="value">${avgCostPerTonne.toFixed(0)} EUR</div><div class="label">Avg cost per tonne (mean across warehouses)</div></div>
     `;
     document.getElementById('assumptions').innerHTML =
-      `Assumptions: ${data.assumptions.co2_factor_kg_per_tonne_km} kg CO2e/tonne-km (illustrative, within the commonly-cited range for road freight — verify against ADEME's current Base Empreinte figure), ` +
-      `demand estimated at ${data.assumptions.tonnes_per_1000_residents_per_year} tonnes/year per 1,000 residents (a proxy, not measured shipment data).`;
+      `Assumptions (illustrative, not researched market rates): ${data.assumptions.cost_eur_per_tonne_km} EUR/tonne-km transport, ` +
+      `${data.assumptions.storage_cost_eur_per_tonne_year} EUR/tonne/year storage.`;
 
-    const top = data.top_links || [];
-    new Chart(document.getElementById('topLinksChart'), {
+    new Chart(document.getElementById('stackedChart'), {
       type: 'bar',
-      data: { labels: top.map(l => `${l.city} <- ${l.warehouse}`), datasets: [{ label: 'CO2 (kg/year)', data: top.map(l => l.co2_kg), backgroundColor: '#2e8b46' }] },
-      options: { indexAxis: 'y', plugins: { legend: { display: false }, title: { display: true, text: 'Top 10 highest-CO2 routes' } } },
-    });
-
-    const cities = data.all_cities || [];
-    const maxCo2 = Math.max(...cities.map(c => c.co2_kg), 1);
-    const warehouses = cities.filter(c => c.is_warehouse);
-    const served = cities.filter(c => !c.is_warehouse);
-    new Chart(document.getElementById('mapChart'), {
-      type: 'scatter',
       data: {
-        // Two datasets, not one, specifically so the warehouse cities get
-        // their own legend entry and a shape (triangle) that reads as
-        // "different kind of thing" at a glance, not just a bigger dot --
-        // a shape difference survives grayscale printing and color-blindness
-        // in a way a color-only distinction doesn't.
+        labels: byWh.map(w => w.warehouse),
         datasets: [
-          {
-            label: 'Existing warehouse',
-            data: warehouses.map(c => ({ x: c.lon, y: c.lat, co2: c.co2_kg, city: c.city, warehouse: c.warehouse })),
-            backgroundColor: '#1a1a2e',
-            pointStyle: 'triangle',
-            pointRadius: 10,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 1,
-          },
-          {
-            label: 'City (size/color = CO2 contribution)',
-            data: served.map(c => ({ x: c.lon, y: c.lat, co2: c.co2_kg, city: c.city, warehouse: c.warehouse })),
-            backgroundColor: served.map(c => `hsl(${Math.max(0, 120 - 120 * (c.co2_kg / maxCo2))}, 70%, 45%)`),
-            pointStyle: 'circle',
-            pointRadius: served.map(c => 4 + 12 * Math.sqrt(c.co2_kg / maxCo2)),
-          },
+          { label: 'Transport cost', data: byWh.map(w => w.transport_cost_eur), backgroundColor: '#0d7c9e' },
+          { label: 'Storage cost', data: byWh.map(w => w.storage_cost_eur), backgroundColor: '#c46e0a' },
         ],
       },
-      // franceBackgroundPlugin (js/france-map-background.js, Step 7) draws a
-      // real, simplified France outline behind the points, using the chart's
-      // own scale conversion -- see Step 7 for why this stays aligned at any
-      // canvas size, unlike a separately-positioned background image.
-      plugins: [franceBackgroundPlugin],
       options: {
-        plugins: {
-          legend: { position: 'bottom' },
-          title: { display: true, text: 'Real coordinates over a real France outline — triangle = existing warehouse, bigger/redder circle = more CO2' },
-          tooltip: { callbacks: { label: (item) => {
-            const c = item.raw;
-            return item.datasetIndex === 0
-              ? [`${c.city} (existing warehouse)`]
-              : [`${c.city} -> ${c.warehouse}`, `${c.co2.toFixed(0)} kg CO2/year`];
-          } } },
-        },
-        scales: {
-          x: { title: { display: true, text: 'Longitude' }, min: FRANCE_BBOX.minLon, max: FRANCE_BBOX.maxLon },
-          y: { title: { display: true, text: 'Latitude' }, min: FRANCE_BBOX.minLat, max: FRANCE_BBOX.maxLat },
-        },
+        plugins: { title: { display: true, text: 'Total cost per warehouse, split by lever' } },
+        scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'EUR / year' } } },
       },
     });
+
+    const tbody = document.querySelector('#topLinksTable tbody');
+    tbody.innerHTML = (data.top_links || []).map(l => `
+      <tr><td>${l.city}</td><td>${l.warehouse}</td><td>${l.distance_km}</td><td>${l.transport_cost_eur.toFixed(0)}</td></tr>
+    `).join('');
   })
   .catch(err => { document.getElementById('kpis').innerHTML = '<p>Could not load data (' + err + ').</p>'; });
 </script>
