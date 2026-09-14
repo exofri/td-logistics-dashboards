@@ -28,7 +28,7 @@
   <canvas id="topLinksChart" height="280"></canvas>
 
   <h2>Where emissions concentrate (spatial → scatter over a real France outline)</h2>
-  <p>This decision is inherently about geography — which <em>region</em> to target for consolidation — so a plain ranking isn't enough; we plot each city at its real coordinates, colored by its CO2 contribution, over a real (simplified) outline of France so "where" reads at a glance instead of requiring you to mentally place bare longitude/latitude numbers.</p>
+  <p>This decision is inherently about geography — which <em>region</em> to target for consolidation — so a plain ranking isn't enough; we plot each city at its real coordinates, colored by its CO2 contribution, over a real (simplified) outline of France so "where" reads at a glance instead of requiring you to mentally place bare longitude/latitude numbers. Existing warehouses get their own marker <em>shape</em> (a triangle), not just a color — a shape difference survives grayscale printing and color-blindness in a way color alone doesn't, and it answers a second real question at a glance: is CO2 concentrating near a warehouse (fixable by re-routing) or far from every warehouse (fixable only by opening a new one)?</p>
   <canvas id="mapChart" height="360"></canvas>
 
 <script>
@@ -52,15 +52,34 @@ fetch('data/co2.json')
 
     const cities = data.all_cities || [];
     const maxCo2 = Math.max(...cities.map(c => c.co2_kg), 1);
+    const warehouses = cities.filter(c => c.is_warehouse);
+    const served = cities.filter(c => !c.is_warehouse);
     new Chart(document.getElementById('mapChart'), {
       type: 'scatter',
       data: {
-        datasets: [{
-          label: 'City (size/color = CO2 contribution)',
-          data: cities.map(c => ({ x: c.lon, y: c.lat, co2: c.co2_kg, city: c.city, warehouse: c.warehouse })),
-          backgroundColor: cities.map(c => `hsl(${Math.max(0, 120 - 120 * (c.co2_kg / maxCo2))}, 70%, 45%)`),
-          pointRadius: cities.map(c => 4 + 12 * Math.sqrt(c.co2_kg / maxCo2)),
-        }],
+        // Two datasets, not one, specifically so the warehouse cities get
+        // their own legend entry and a shape (triangle) that reads as
+        // "different kind of thing" at a glance, not just a bigger dot --
+        // a shape difference survives grayscale printing and color-blindness
+        // in a way a color-only distinction doesn't.
+        datasets: [
+          {
+            label: 'Existing warehouse',
+            data: warehouses.map(c => ({ x: c.lon, y: c.lat, co2: c.co2_kg, city: c.city, warehouse: c.warehouse })),
+            backgroundColor: '#1a1a2e',
+            pointStyle: 'triangle',
+            pointRadius: 10,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1,
+          },
+          {
+            label: 'City (size/color = CO2 contribution)',
+            data: served.map(c => ({ x: c.lon, y: c.lat, co2: c.co2_kg, city: c.city, warehouse: c.warehouse })),
+            backgroundColor: served.map(c => `hsl(${Math.max(0, 120 - 120 * (c.co2_kg / maxCo2))}, 70%, 45%)`),
+            pointStyle: 'circle',
+            pointRadius: served.map(c => 4 + 12 * Math.sqrt(c.co2_kg / maxCo2)),
+          },
+        ],
       },
       // franceBackgroundPlugin (js/france-map-background.js, Step 7) draws a
       // real, simplified France outline behind the points, using the chart's
@@ -69,11 +88,13 @@ fetch('data/co2.json')
       plugins: [franceBackgroundPlugin],
       options: {
         plugins: {
-          legend: { display: false },
-          title: { display: true, text: 'Real coordinates over a real France outline — bigger/redder = more CO2' },
+          legend: { position: 'bottom' },
+          title: { display: true, text: 'Real coordinates over a real France outline — triangle = existing warehouse, bigger/redder circle = more CO2' },
           tooltip: { callbacks: { label: (item) => {
             const c = item.raw;
-            return [`${c.city} -> ${c.warehouse}`, `${c.co2.toFixed(0)} kg CO2/year`];
+            return item.datasetIndex === 0
+              ? [`${c.city} (existing warehouse)`]
+              : [`${c.city} -> ${c.warehouse}`, `${c.co2.toFixed(0)} kg CO2/year`];
           } } },
         },
         scales: {
